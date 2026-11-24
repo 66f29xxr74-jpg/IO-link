@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>도미노 경제 · 2023 산업연관표 파급 게임</title>
+<meta name="description" content="2023년 산업연관표(연장표)를 활용해 산업 간 생산·부가가치·수입 파급효과를 게임처럼 체험하는 웹앱">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='9' fill='%230b1020'/><rect x='7' y='6' width='6' height='20' rx='2' fill='%23ffc857'/><rect x='16' y='9' width='6' height='17' rx='2' fill='%235eead4' transform='rotate(18 19 17)'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <div class="row">
+    <div class="brand">
+      <span class="logo">도미노<em>경제</em></span>
+      <span class="sub">2023년 산업연관표(연장표) · 파급 게임</span>
+    </div>
+    <div class="ctl">
+      <label><span class="sub">분류 </span>
+        <select id="level" aria-label="투입산출표 분류 선택">
+          <option value="large">대분류 · 33부문</option>
+          <option value="mid">중분류 · 83부문</option>
+          <option value="small">소분류 · 165부문</option>
+          <option value="basic">기본부문 · 380부문</option>
+        </select>
+      </label>
+      <button id="load" class="btn">엑셀 자료 불러오기</button>
+      <div class="xp" title="도미노를 쓰러뜨리면 XP를 얻고, 미션을 달성하면 보너스를 받습니다"><b id="lv">Lv.1</b><div class="bar"><i id="xpb"></i></div></div>
+    </div>
+  </div>
+  <nav class="tabs" role="tablist">
+    <button role="tab" data-tab="play" aria-selected="true">파급 게임</button>
+    <button role="tab" data-tab="quest" aria-selected="false">미션</button>
+    <button role="tab" data-tab="explore" aria-selected="false">데이터 탐색</button>
+    <button role="tab" data-tab="method" aria-selected="false">방법 · 단위</button>
+  </nav>
+</header>
+
+<div class="status" id="status" role="status">자료를 준비하고 있습니다…</div>
+
+<main>
+  <section id="play" class="tab">
+    <div class="board">
+      <div class="bh">
+        <input id="q" type="search" placeholder="산업 검색 (예: 건설, 반도체, 금융)" aria-label="산업 검색">
+        <span id="count"></span>
+      </div>
+      <div id="grid" class="grid" aria-label="산업 도미노 타일"></div>
+    </div>
+    <aside class="panel">
+      <div class="card pick">
+        <small>선택한 산업</small>
+        <h2 id="pname">불러오는 중…</h2>
+        <p class="meta" id="pmeta"></p>
+      </div>
+      <div class="card">
+        <div class="modes" role="group" aria-label="게임 모드">
+          <button data-mode="demand" aria-pressed="true">수요 투입</button>
+          <button data-mode="local" aria-pressed="false">국산화</button>
+          <button data-mode="price" aria-pressed="false">원가 충격</button>
+        </div>
+        <div id="ctrl"></div>
+        <button id="go" class="go" disabled>도미노 쓰러뜨리기</button>
+      </div>
+      <div class="card res" id="res" aria-live="polite"><p class="empty">산업 타일을 고르고 도미노를 쓰러뜨려 보세요. 어떤 산업의 수요가 경제 전체로 얼마나 번지는지 바로 볼 수 있습니다.</p></div>
+    </aside>
+  </section>
+
+  <section id="quest" class="tab" hidden>
+    <div class="mlist" id="mlist"></div>
+    <div class="mfoot"><span>미션은 이 브라우저에 저장되며 다시 열어도 유지됩니다.</span><button class="btn" id="reset">진행 초기화</button></div>
+  </section>
+
+  <section id="explore" class="tab" hidden>
+    <div class="ex-h">
+      <div class="seg" id="sheets" role="group" aria-label="시트 선택"></div>
+      <input id="eq" type="search" placeholder="행 산업 검색" aria-label="행 산업 검색">
+    </div>
+    <p class="meta" id="exmeta" style="margin:0 0 10px"></p>
+    <div class="tw"><table><thead><tr><th>#</th><th>산업(행)</th><th>값</th><th>상대 크기</th></tr></thead><tbody id="extb"></tbody></table></div>
+  </section>
+
+  <section id="method" class="tab" hidden>
+    <div class="doc">
+      <h2>계산 방법과 단위</h2>
+      <p>이 앱은 한국은행 「2023년 산업연관표(연장표)」의 생산자가격 투입산출표를 사용합니다. 모든 금액 단위는 <b>백만 원</b>(당해년 가격)이며, 화면에서는 억·조 단위로 환산해 표시합니다. 1조 원 = 1,000,000백만 원.</p>
+      <h3>1. 국산 기준 생산유발 (레온티에프 모형)</h3>
+      <p><code>x = (I − Ad)⁻¹ f</code> · Ad는 국산투입계수 행렬(국산 중간재 투입액 ÷ 총투입), f는 최종수요 벡터, x는 부문별 총산출.</p>
+      <p>부문 j의 <b>생산유발계수</b>는 열합 <code>Σᵢ Lᵢⱼ</code>이며, 이는 한국은행이 공표하는 생산유발계수 행렬과 일치합니다(검증 완료).</p>
+      <h3>2. 부가가치·수입 유발</h3>
+      <p>부가가치율 <code>vⱼ = 1 − Σᵢ(Adᵢⱼ + Amᵢⱼ)</code>, 수입의존도 <code>mⱼ = Σᵢ Amᵢⱼ</code>. 부가가치 유발은 <code>Σ vᵢxᵢ</code>, 수입 유발은 <code>Σ mᵢxᵢ</code>로 계산합니다.</p>
+      <h3>3. 국산화 효과 (Sherman–Morrison 공식)</h3>
+      <p>산업 k가 수입 중간재의 α 비율을 국산으로 바꾸면 Ad의 k열이 <code>u = α·Am·k</code>만큼 증가합니다. 역행렬을 다시 구하지 않고 <code>x′ = x + L·u · (Lkk·F) / (1 − Σⱼ Lkⱼ uⱼ)</code>로 갱신합니다.</p>
+      <h3>4. 원가 충격과 물가 파급</h3>
+      <p>충격 산업의 가격을 고정하고 나머지 산업은 <code>pⱼ = Σᵢ Aᵢⱼ pᵢ</code>(A = Ad + Am)을 반복 계산해 구합니다. 비용 전가만 반영하며 임금·이윤 변화는 고정으로 가정합니다.</p>
+      <h3>5. 한계</h3>
+      <ul>
+        <li>선형·고정계수 가정: 가격 변화에 따른 수요 대체, 공급 제약, 기술 변화는 반영하지 않습니다.</li>
+        <li>BOK가 공표하는 전체 생산유발계수 1.827은 최종수요 가중 평균이므로, 부문별 열합의 단순 평균(약 1.89)과 정의가 다릅니다.</li>
+        <li>취업·고용 효과는 이 앱에서 계산하지 않습니다.</li>
+      </ul>
+      <h3>6. 출처</h3>
+      <p>한국은행 보도자료 「2023년 산업연관표(연장표)」(2025.9.24, 공보 2025-09-22호), 한국은행 경제통계시스템(ECOS) 공개 자료. 학술 과제용으로 공개된 통계만 사용하며 개인정보는 포함하지 않습니다.</p>
+    </div>
+  </section>
+</main>
+
+<div class="foot">단위: 백만 원(생산자가격, 2023년 당해년 가격) · 계수는 무차원 · 데이터: 한국은행 2023년 산업연관표(연장표)</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
